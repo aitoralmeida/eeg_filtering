@@ -3,7 +3,6 @@ import scipy.signal
 import pandas as pd
 import seaborn as sns
 import matplotlib.pylab as plt
-from statistics import variance
 
 """
 Quality assessment metrics for EEG denoising methods
@@ -12,9 +11,18 @@ Quality assessment metrics for EEG denoising methods
 def covariance(x,y):
     """ 
     Returns the covariance between x and y.
-    (Note: For Python > 3.10 the statistics module includes an analogous covariance method)
     """
     return np.cov(x,y)[0,1]
+
+def variance(x):
+    """
+    Returns the variance of x.
+
+    Note: Using the implementation in the built-in statistics module fails
+    due to a well-documented casting issue between 32-bit and 64-bit floats.
+    (See: https://bugs.python.org/issue39218)
+    """
+    return np.var(x)
 
 def rms(x):
     """ 
