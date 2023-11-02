@@ -21,11 +21,11 @@ import os
 # Here is the main part of the denoising neurl network, We can adjust all the parameter in the user-defined area.
 #####################################################自定义 user-defined ########################################################
 
-epochs = 100    # training epoch
+epochs = 60    # training epoch
 batch_size  = 40    # training batch size
 combin_num = 10    # combin EEG and noise ? times
-denoise_network = 'RNN_lstm'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
-noise_type = 'EOG'
+denoise_network = 'fcNN'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
+noise_type = 'tDCS'
 optimizer_name = "Adam"
 case_file = "1"
 execution_run = 1 # We run each NN for 10 times to increase  the  statistical  power  of  our  results
@@ -50,11 +50,10 @@ elif optimizer_name == "RMSP":
 elif optimizer_name == "SGD":
   optimizer = sgd
 
-if noise_type == 'EOG':
+if noise_type in ['EOG', 'tDCS']:
   datanum = 512
 elif noise_type == 'EMG':
   datanum = 1024
-
 
 # We have reserved an example of importing an existing network
 '''
@@ -64,12 +63,14 @@ denoiseNN = tf.keras.models.load_model(path)
 #################################################### 数据输入 Import data #####################################################
 
 file_location = '../../data/'                    ############ change it to your own location #########
+EEG_all = np.load( file_location + 'EEG_all_epochs.npy')                              
 if noise_type == 'EOG':
-  EEG_all = np.load( file_location + 'EEG_all_epochs.npy')                              
   noise_all = np.load( file_location + 'EOG_all_epochs.npy') 
 elif noise_type == 'EMG':
-  EEG_all = np.load( file_location + 'EEG_all_epochs.npy')                              
   noise_all = np.load( file_location + 'EMG_all_epochs.npy') 
+elif noise_type == 'tDCS':
+  noise_tDCS_folder = 'tDCS_all_epochs-1.5mA.npy'
+  noise_all = np.load(file_location + noise_tDCS_folder)
 
 ############################################################# Running #############################################################
 #for i in range(10):
