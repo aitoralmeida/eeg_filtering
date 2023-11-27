@@ -90,8 +90,9 @@ if __name__ == "__main__":
         if tES_mode not in tES_supported_modes:
             raise ValueError(f"Selected tES mode not supported, please try one of the following: {tES_supported_modes}") 
         # Generate sample times
-        # TODO: Pass end_time and sampling_rate from console, instead of hardcoded...
-        start_time, end_time, sampling_rate = 0, 2, 256
+        start_time = 0
+        end_time = int(input("Please enter the desired end time (in s): "))
+        sampling_rate = int(input("Please enter the sampling rate: "))
         t = np.linspace(start_time, end_time, end_time * sampling_rate, endpoint = False)
         if tES_mode == "tDCS":
             current = float(input("Please enter the desired constant current in mA: "))
