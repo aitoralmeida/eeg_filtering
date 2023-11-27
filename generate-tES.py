@@ -7,11 +7,11 @@ from tqdm import tqdm
 This script allows the user to generate tES synthetic data compatible with
 the EEG framework developped by EEGdenoiseNet.
 
-Currently supporting tDCS. More methods coming soon...
+Currently supporting tDCS, tRNS, tACS. More methods coming soon...
 """
 
 tES_mode = None
-tES_supported_modes = ["tDCS", "tRNS"]
+tES_supported_modes = ["tDCS", "tRNS", "tACS"]
 V_COEFFS_lsm = [3.99, 3.64, 1.395, 9.92e-3, 3.35e-5]
 
 def generate_tDCSvoltage_approximation(current, t, plot = False):
@@ -83,6 +83,44 @@ def plot_tRNS_signals(current, voltage, t):
     ax[1].set_xlabel('Time (s)'), ax[1].set_ylabel('Voltage (V)'), ax[1].grid(True)
     plt.show()
 
+def generate_tACSvoltage_approximation(amplitude, frequency, t, plot = False):
+    """
+    Generates tACS voltage signal for a given amplitude current and frequency.
+    """
+    current = amplitude * np.sin(2 * np.pi * frequency * t)
+    voltage_clean = _generate_tACS_voltage(current, t)
+    voltage_noisy = voltage_clean + _generate_tACSvoltage_noise(voltage_clean)
+    if plot: plot_tACS_signals(current, voltage_clean, voltage_noisy, t)
+    return voltage_noisy
+
+def _generate_tACS_voltage(current, t):
+    """
+    Voltage signal generated using the proposed approximation in:
+        ~ `Methods for extra-low voltage transcranial direct current stimulation: Current and time dependent impedance decreases` by Hahn et al.
+    """
+    return V_COEFFS_lsm[0] + V_COEFFS_lsm[1] * current + V_COEFFS_lsm[3] * current * t + 0.5 * V_COEFFS_lsm[4] * current * t**2
+
+def _generate_tACSvoltage_noise(clean_signal):
+    """
+    Random gaussian noise is added to the generated clean voltages. For increased
+    diversity in the tACS signals, the std deviation of the noise is selected randomly
+    between a set of values.
+    """
+    noise_std = random.choice([0.1, 0.5, 1])
+    return np.random.normal(0, noise_std, clean_signal.shape[0])
+
+def plot_tACS_signals(current, voltage_clean, voltage_noisy, t):
+    """
+    Utility method to plot the tACS signals generated.
+    """
+    f, ax = plt.subplots(1, 2, figsize=(10, 7))
+    ax[0].plot(t, current, color = 'blue'), ax[0].title.set_text('tACS Current (in mA)') ,\
+    ax[0].set_xlabel('Time (s)'), ax[0].set_ylabel('Current (mA)'), ax[0].grid(True)
+
+    ax[1].plot(t, voltage_clean, label = 'Clean Signal', color = 'blue'), ax[1].plot(t, voltage_noisy, label = 'Noisy Signal', color = 'red'),\
+    ax[1].title.set_text('tACS Voltage (in V)') , ax[1].set_xlabel('Time (s)'), ax[1].set_ylabel('Voltage (V)'), ax[1].grid(True), ax[1].legend(loc = 'upper center')
+    plt.show()
+
 if __name__ == "__main__":
     print("Welcome to tES data generation...")
     try:
@@ -112,6 +150,16 @@ if __name__ == "__main__":
                 tRNS_samples[sample, :] = generate_tRNSvoltage_approximation(peak_current, t)
             # Store the results in EEGdenoiseNet compatible format
             np.save(f"tRNS_all_epochs-{peak_current}mA.npy", tRNS_samples * 1e6)
+        elif tES_mode == "tACS":
+            amplitude_current = float(input("Please enter the desired amplitude current in mA: "))
+            frequency = float(input("Please enter the desired frequency in Hz: ")) 
+            num_samples = int(input("Please enter the desired number of samples: "))
+            # Get voltage approximations
+            tACS_samples = np.empty((num_samples, t.size))
+            for sample in tqdm(range(num_samples)):
+                tACS_samples[sample, :] = generate_tACSvoltage_approximation(amplitude_current, frequency, t)
+            # Store the results in EEGdenoiseNet compatible format
+            np.save(f"tACS_all_epochs-{amplitude_current}mA_{frequency}Hz.npy", tACS_samples * 1e6)  
         print("Finished generating data samples!")
     except IndexError:
         raise ValueError(f"Please, provide a tES mode. Currently supporting {tES_supported_modes}")

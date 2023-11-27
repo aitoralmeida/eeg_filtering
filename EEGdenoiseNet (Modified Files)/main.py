@@ -19,13 +19,15 @@ import os
 # EEGdenoiseNet V2
 # Author: Haoming Zhang 
 # Here is the main part of the denoising neurl network, We can adjust all the parameter in the user-defined area.
-#####################################################自定义 user-defined ########################################################
+##################################################### User-defined ########################################################
 
 epochs = 60    # training epoch
 batch_size  = 40    # training batch size
-combin_num = 10    # combin EEG and noise ? times
+sampling_rate = 256 # Sampling Rate
+num_seconds = 2 # Number of seconds
+combin_num = 10    # combin EEG and noise ? timdenoise_network = 'Simple_CNN'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
 denoise_network = 'fcNN'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
-noise_type = 'tDCS'
+noise_type = 'tRNS' # Type of noise to be applied to EEG recordings
 optimizer_name = "Adam"
 case_file = "1"
 execution_run = 1 # We run each NN for 10 times to increase  the  statistical  power  of  our  results
@@ -38,29 +40,29 @@ save_vali = True
 save_test = True
 
 ################################################## optimizer adjust parameter  ####################################################
-rmsp=tf.optimizers.RMSprop(learning_rate=0.00005, rho=0.9)
+#rmsp=tf.optimizers.RMSprop(learning_rate=0.00005, rho=0.9)
 adam=tf.optimizers.Adam(learning_rate=0.00005, beta_1=0.5, beta_2=0.9, epsilon=1e-08)
-sgd=tf.optimizers.SGD(learning_rate=0.0002, momentum=0.9, decay=0.0, nesterov=False)
+#sgd=tf.optimizers.SGD(learning_rate=0.0002, momentum=0.9, decay=0.0, nesterov=False)
 ###################################################################################################################################
 
 if optimizer_name == "Adam":
   optimizer = adam
-elif optimizer_name == "RMSP":
-  optimizer = rmsp
-elif optimizer_name == "SGD":
-  optimizer = sgd
+# elif optimizer_name == "RMSP":
+#   optimizer = rmsp
+# elif optimizer_name == "SGD":
+#   optimizer = sgd
 
-if noise_type in ['EOG', 'tDCS']:
-  datanum = 512
+if noise_type in ['EOG', 'tDCS', 'tRNS']:
+  datanum = sampling_rate * num_seconds
 elif noise_type == 'EMG':
-  datanum = 1024
+  datanum = sampling_rate * num_seconds * 2 # At least for the EEGdenoiseNet benchmarks (i.e. 2s segments)
 
 # We have reserved an example of importing an existing network
 '''
 path = os.path.join(result_location, foldername, "denoised_model")
 denoiseNN = tf.keras.models.load_model(path)
 '''
-#################################################### 数据输入 Import data #####################################################
+#################################################### Import data #####################################################
 
 file_location = '../../data/'                    ############ change it to your own location #########
 EEG_all = np.load( file_location + 'EEG_all_epochs.npy')                              
@@ -71,6 +73,9 @@ elif noise_type == 'EMG':
 elif noise_type == 'tDCS':
   noise_tDCS_folder = 'tDCS_all_epochs-1.5mA.npy'
   noise_all = np.load(file_location + noise_tDCS_folder)
+elif noise_type == 'tRNS':
+  noise_tRNS_folder = 'tRNS_all_epochs-1.5mA.npy' 
+  noise_all = np.load(file_location + noise_tRNS_folder)
 
 ############################################################# Running #############################################################
 #for i in range(10):
